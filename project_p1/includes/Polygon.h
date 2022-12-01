@@ -33,8 +33,8 @@ public:
     virtual ~Polygon() {}
     virtual void calculateResult() = 0;
     void printInfo(string);
-    bool edgeVisible(const Segment_2& edge, Point_2 point,Polygon_2 pol);
+    
     string simpleOrNot();
 };
-
+bool edgeVisible(const Segment_2& edge, Point_2 point,Polygon_2 pol);
 #endif
