@@ -18,7 +18,7 @@ Incremental::Incremental(string inputFileName, string sortingMethod) : Polygon(i
         sort(sortedPoints.begin(), sortedPoints.end(), function4);
 
     for(auto it = sortedPoints.begin(); it!= sortedPoints.end(); ++it)
-            std::cout << *it << std::endl;
+        std::cout << *it << std::endl;
 }
 
 
@@ -48,120 +48,124 @@ bool function4(Point_2 p1, Point_2 p2)
 
 void Incremental::calculateResult()
 {
-        Polygon_2 cpoints;
+//    Polygon_2 cpoints;
 
-        vector<K::Segment_2> redSegments;
-        vector<K::Segment_2> SegmentstoBreak;
-        vector<K::Segment_2> behindSegments;
-        vector<K::Point_2> chull;
+    vector<K::Segment_2> redSegments;
+    vector<K::Segment_2> SegmentstoBreak;
+    vector<K::Segment_2> behindSegments;
 
-        //for the first 3 points of sortedPoints, create convex hull polygon in result
-        for(int i = 0; i<3;i++ )
-                result.push_back(sortedPoints[i]);
+    //for the first 3 points of sortedPoints, create convex hull polygon in result
+    for(int i = 0; i<3;i++ )
+        result.push_back(sortedPoints[i]);
 
-        
-        const Polygon_2::Vertices& range = result.vertices();
-        CGAL::convex_hull_2(range.begin(), range.end(), std::back_inserter(chull));
-        
+    vector<K::Point_2> chull;
+    const Polygon_2::Vertices& range = result.vertices();
+    CGAL::convex_hull_2(range.begin(), range.end(), std::back_inserter(chull));
 
-     int c=0;
-     for(auto it = sortedPoints.begin(); it!= sortedPoints.end(); ++it){
+    result.clear();
+    for(auto iter = chull.begin(); iter!= chull.end();++iter)
+        result.push_back(*iter);
 
-            c++;
-            if(c>3){
+    int c=0;
+    for(auto it = sortedPoints.begin(); it!= sortedPoints.end(); ++it, c++){
 
-                      //construct convex hull from result polygon
-                      const Polygon_2::Vertices& range = result.vertices();
-                      CGAL::convex_hull_2(range.begin(), range.end(), std::back_inserter(chull));
+        chull.clear();
 
-                      for(auto iter = chull.begin(); iter!= chull.end();++iter)
-                             cpoints.push_back(*iter);
+        if(c>2){
 
+            //construct convex hull from result polygon
+            const Polygon_2::Vertices& range = result.vertices();
+            CGAL::convex_hull_2(range.begin(), range.end(), std::back_inserter(chull));
 
-                       //for all edges of convex hull if visible from point[i] add to redSegments
-                      redSegments.clear();
-                      for(const Segment_2& e  : cpoints.edges()){
-                        
-                              if(edgeVisible(e,*it,cpoints)){
-                                    redSegments.push_back(e);
-                                   // std::cout << e << " added to red Segments" << std::endl;
-                              }
-                      }
+            Polygon_2 cpoints;
+            for(auto iter = chull.begin(); iter!= chull.end();++iter)
+                cpoints.push_back(*iter);
 
 
+            //for all edges of convex hull if visible from point[i] add to redSegments
+            redSegments.clear();
+            for(const Segment_2& e  : cpoints.edges()){
 
-                    // for all edges in result if exist in redSegmenτ add it to segmentsToBreak
-                      SegmentstoBreak.clear();
-                      for(const Segment_2& e  : result.edges()){
+                if(edgeVisible(e, *it, cpoints)){
+                    redSegments.push_back(e);
+                    std::cout << e << " added to red Segments" << std::endl;
+                }
+            }
 
-                            for(const Segment_2& rs  : redSegments){
 
-                                  if(e == rs){
-                                        SegmentstoBreak.push_back(e);
-                                      //  std::cout << e << " added to Segments to break" << std::endl;
-                                        break;
-                                  }
-                          }
-                      }
 
-                      int flag=0;
-                    //if segmentsToBreak is empty, do    
-                      if (SegmentstoBreak.empty()){
+            // for all edges in result if exist in redSegmenτ add it to segmentsToBreak
+            SegmentstoBreak.clear();
+            for(const Segment_2& e  : result.edges()){
 
-                            for(const Segment_2& rs  : redSegments){
+                for(const Segment_2& rs  : redSegments){
 
-                                    //Adding edges from behind the (convex hull) red edge
-                                    int eflag=0;
-                                    for(const Segment_2& e  : result.edges()){
+                    if(e == rs){
+                        SegmentstoBreak.push_back(e);
+                        std::cout << e << " added to Segments to break" << std::endl;
+                        break;
+                    }
+                }
+            }
 
-                                            if(e.source() == rs.source())
-                                                    eflag=1;
-                                                
-                                            if(eflag==1){
+            int flag=0;
+            //if segmentsToBreak is empty, do
+            if (SegmentstoBreak.empty()){
 
-                                                    behindSegments.push_back(e);
-                                                    if(e.target() == rs.target()){
-                                                            eflag==0;
-                                                            break;
-                                                    }
-                                            }
-                                    }
+                for(const Segment_2& rs  : redSegments){
 
-                                    //Checking for a behind red Segment edge and visible 
-                                    for(const Segment_2& e  : result.edges()){
+                    //Adding edges from behind the (convex hull) red edge
+                    int eflag=0;
+                    for(const Segment_2& e  : result.edges()){
 
-                                            if((std::find(behindSegments.begin(), behindSegments.end(), e) != behindSegments.end()) && (edgeVisible(e,*it,result))){
-                                                SegmentstoBreak.push_back(e);
-                                                flag=1;
-                                                break;
-                                            }
-                                    }
+                        if(e.source() == rs.source())
+                            eflag=1;
 
-                                    behindSegments.clear();
-                                    if(flag==1)
-                                        break;
+                        if(eflag==1){
+
+                            behindSegments.push_back(e);
+                            if(e.target() == rs.target()){
+                                eflag==0;
+                                break;
                             }
-                      }
+                        }
+                    }
 
-  
+                    //Checking for a behind red Segment edge and visible
+                    for(const Segment_2& e  : result.edges()){
+
+                        if((std::find(behindSegments.begin(), behindSegments.end(), e) != behindSegments.end()) && (edgeVisible(e,*it,result))){
+                            SegmentstoBreak.push_back(e);
+                            flag=1;
+                            break;
+                        }
+                    }
+
+                    behindSegments.clear();
+                    if(flag==1)
+                        break;
+                }
+            }
+
+
             //remove segmentsToBreak[0] add point[i] add segmentsToBreak[0]
 
 
-                     std::vector<Point_2>::iterator iter;
-                      for (iter=result.begin(); iter!=result.end(); ++iter){
+            std::vector<Point_2>::iterator iter;
+            for (iter=result.begin(); iter!=result.end(); ++iter){
 
-                                if(*iter == SegmentstoBreak[0].target()){
+                if(*iter == SegmentstoBreak[0].target()){
 
-                                        result.erase(iter);
-                                        result.insert(iter,*it);
+                    result.erase(iter);
+                    result.insert(iter,*it);
 
-                                        iter++;
-                                        result.insert(iter,SegmentstoBreak[0].target());
+                    iter++;
+                    result.insert(iter,SegmentstoBreak[0].target());
 
-                                        break;
-                                }
-                        }
+                    break;
+                }
             }
+        }
     }
 
 }
